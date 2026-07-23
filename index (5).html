@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCA Control Room · Kariwala Industries</title>
+<script>(function(){try{var t=localStorage.getItem('mca_theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0F1626;
+    --glow:#17213B;
+    --surface:#161F35;
+    --surface-2:#1D2A47;
+    --border:rgba(255,255,255,0.08);
+    --border-soft:rgba(255,255,255,0.05);
+    --grid:rgba(255,255,255,0.04);
+    --text:#EDF1FA;
+    --text-muted:#8B96AE;
+    --text-faint:#5C6785;
+    --revenue:#4F91FF;
+    --contrib:#F5A623;
+    --good:#33D6A6;
+    --warn:#F5A623;
+    --danger:#E5484D;
+    --good-bg:rgba(51,214,166,0.12);
+    --warn-bg:rgba(245,166,35,0.12);
+    --danger-bg:rgba(229,72,77,0.14);
+  }
+  :root[data-theme="light"]{
+    --bg:#F3F5FA;
+    --glow:#E7EEFC;
+    --surface:#FFFFFF;
+    --surface-2:#F0F3FA;
+    --border:rgba(16,23,40,0.10);
+    --border-soft:rgba(16,23,40,0.06);
+    --grid:rgba(16,23,40,0.06);
+    --text:#12192B;
+    --text-muted:#5B667E;
+    --text-faint:#8993AC;
+    --revenue:#2E6FE0;
+    --contrib:#B3700A;
+    --good:#0FA57A;
+    --warn:#B3700A;
+    --danger:#D53F45;
+    --good-bg:rgba(15,165,122,0.10);
+    --warn-bg:rgba(179,112,10,0.10);
+    --danger-bg:rgba(213,63,69,0.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:radial-gradient(1100px 600px at 8% -10%, var(--glow) 0%, var(--bg) 55%), var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    transition:background-color .2s ease, color .2s ease;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:28px 20px 80px;}
+
+  /* Header */
+  header{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:22px;}
+  .brand-eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); margin:0 0 6px;}
+  h1{font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; margin:0 0 4px; letter-spacing:-0.01em;}
+  .sub{color:var(--text-muted); font-size:13.5px; margin:0;}
+  .status{display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:9px 13px;}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--good-bg); flex:none;}
+  .status-text{font-size:12px; color:var(--text-muted); line-height:1.35;}
+  .status-text b{color:var(--text); font-weight:600;}
+  #refreshBtn, #themeToggle, #mailBtn{background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-size:12px; font-weight:600; padding:6px 10px; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif;}
+  #refreshBtn:hover, #themeToggle:hover, #mailBtn:hover{background:#243456;}
+  :root[data-theme="light"] #refreshBtn:hover, :root[data-theme="light"] #themeToggle:hover, :root[data-theme="light"] #mailBtn:hover{background:#E3E9F5;}
+  #refreshBtn:disabled{opacity:.5; cursor:default;}
+  #themeToggle{padding:6px 9px; font-size:14px; line-height:1;}
+
+  /* Setup panel */
+  #loadError{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px; margin-bottom:20px;}
+  #loadError h2{margin:0 0 8px; font-family:'Space Grotesk',sans-serif; font-size:17px;}
+  #loadError p{color:var(--text-muted); font-size:13.5px; line-height:1.6; margin:0 0 14px;}
+  #loadError button{background:var(--revenue); color:#0F1626; border:none; padding:10px 18px; border-radius:9px; font-weight:700; font-size:13.5px; cursor:pointer; font-family:'Inter',sans-serif;}
+
+  /* Filter bar */
+  .filterbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:20px;}
+  select{background:var(--surface); border:1px solid var(--border); color:var(--text); padding:9px 12px; border-radius:9px; font-size:13px; font-family:'Inter',sans-serif; font-weight:500; cursor:pointer;}
+  .scope-toggle{display:flex; background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:3px; gap:2px;}
+  .scope-toggle button{background:transparent; border:none; color:var(--text-muted); padding:7px 14px; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;}
+  .scope-toggle button.active{background:var(--revenue); color:#0F1626;}
+
+  /* KPI row */
+  .kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;}
+  .kpi{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; position:relative; overflow:hidden;}
+  .kpi::before{content:''; position:absolute; top:0; left:0; right:0; height:3px;}
+  .kpi.rev::before{background:var(--revenue);}
+  .kpi.con::before{background:var(--contrib);}
+  .kpi.pv::before{background:var(--good);}
+  .kpi.buy::before{background:#9E8CFF;}
+  .kpi-label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint); margin-bottom:8px;}
+  .kpi-value{font-family:'IBM Plex Mono',monospace; font-size:23px; font-weight:600; letter-spacing:-0.01em;}
+  .kpi-delta{font-size:11.5px; margin-top:6px; font-family:'IBM Plex Mono',monospace;}
+  .delta-up{color:var(--good);} .delta-down{color:var(--danger);} .delta-flat{color:var(--text-faint);}
+
+  /* Health strip (signature element) */
+  .health-strip{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:22px;}
+  .health-strip-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;}
+  .health-strip-top .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint);}
+  .health-strip-top .val{font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600;}
+  .health-track{position:relative; height:10px; border-radius:6px; background:linear-gradient(90deg, var(--danger) 0%, var(--danger) 15%, var(--warn) 15%, var(--warn) 25%, var(--good) 25%, var(--good) 100%);}
+  .health-marker{position:absolute; top:-5px; width:2px; height:20px; background:#fff; box-shadow:0 0 0 2px rgba(255,255,255,0.25); border-radius:1px;}
+  .health-legend{display:flex; gap:16px; margin-top:8px; font-size:11px; color:var(--text-faint);}
+  .health-legend span{display:inline-flex; align-items:center; gap:5px;}
+  .swatch{width:8px; height:8px; border-radius:2px; display:inline-block;}
+
+  /* Tabs */
+  .tabs{display:flex; gap:6px; overflow-x:auto; margin-bottom:16px; padding-bottom:2px;}
+  .tab{background:var(--surface); border:1px solid var(--border); color:var(--text-muted); padding:9px 15px; border-radius:9px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:'Inter',sans-serif;}
+  .tab.active{background:var(--surface-2); color:var(--text); border-color:rgba(79,145,255,0.4); box-shadow:inset 0 0 0 1px rgba(79,145,255,0.15);}
+
+  .panel{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin-bottom:16px;}
+  .panel-title{font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600; margin:0 0 4px;}
+  .panel-sub{color:var(--text-muted); font-size:12.5px; margin:0 0 16px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:right; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); font-weight:600; padding:0 10px 10px; border-bottom:1px solid var(--border);}
+  th:first-child{text-align:left;}
+  td{padding:9px 10px; border-bottom:1px solid var(--border-soft); text-align:right; font-family:'IBM Plex Mono',monospace; font-size:12.5px;}
+  td:first-child{text-align:left; font-family:'Inter',sans-serif; font-weight:500; font-size:13px;}
+  tr:hover td{background:rgba(255,255,255,0.02);}
+  .pv-pill{display:inline-block; padding:2px 8px; border-radius:5px; font-size:11.5px; font-weight:600;}
+  .pv-good{background:var(--good-bg); color:var(--good);}
+  .pv-warn{background:var(--warn-bg); color:var(--warn);}
+  .pv-bad{background:var(--danger-bg); color:var(--danger);}
+  .bar-cell{display:inline-block; height:5px; border-radius:3px; background:var(--revenue); vertical-align:middle; margin-right:6px;}
+
+  .chart-wrap{margin-top:18px; height:320px;}
+  canvas{max-width:100%;}
+
+  .two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:16px;}
+  @media (max-width:860px){ .two-col{grid-template-columns:1fr;} .kpi-row{grid-template-columns:1fr 1fr;} }
+
+  .empty{color:var(--text-faint); font-size:13px; text-align:center; padding:30px 0;}
+
+  .risk-card{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border-soft);}
+  .risk-card:last-child{border-bottom:none;}
+  .risk-name{font-weight:600; font-size:13.5px;}
+  .risk-meta{font-size:11.5px; color:var(--text-muted); margin-top:2px;}
+  .risk-pct{font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:600;}
+
+  .trend-controls{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .chip{background:var(--surface-2); border:1px solid var(--border); color:var(--text-muted); padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;}
+  .chip.active{background:var(--revenue); color:#0F1626; border-color:var(--revenue);}
+
+  footer{text-align:center; color:var(--text-faint); font-size:11.5px; margin-top:30px;}
+  a.link{color:var(--revenue); text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="brand-eyebrow">Kariwala Industries · Merchandising</p>
+      <h1>MCA Control Room</h1>
+      <p class="sub">Buyer &amp; merchandiser contribution analysis, live from the sheet.</p>
+    </div>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <span class="status-text" id="statusText">Connecting…</span>
+      <button id="mailBtn" title="Email this report">✉ Email</button>
+      <button id="themeToggle" title="Toggle light/dark">🌙</button>
+      <button id="refreshBtn">Refresh</button>
+    </div>
+  </header>
+
+  <div id="loadError" style="display:none;">
+    <h2>Couldn't load the report</h2>
+    <p id="loadErrorMsg">Something went wrong reaching the data source.</p>
+    <button id="retryBtn">Try again</button>
+  </div>
+
+  <div id="app" style="display:none;">
+
+    <div class="filterbar">
+      <select id="monthSelect"></select>
+      <div class="scope-toggle">
+        <button data-scope="month" class="active">This Month</button>
+        <button data-scope="cumulative">Cumulative to Date</button>
+      </div>
+      <select id="dimSelect" style="margin-left:auto;">
+        <option value="buyer">Buyer</option>
+        <option value="merch">Merchandiser</option>
+        <option value="category">Category</option>
+        <option value="region">Region</option>
+        <option value="complexity">Complexity</option>
+        <option value="idStatus">ID Status</option>
+        <option value="persona">Persona</option>
+      </select>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi rev"><div class="kpi-label">Revenue (lakhs)</div><div class="kpi-value mono" id="kpiRevenue">—</div><div class="kpi-delta" id="kpiRevenueDelta"></div></div>
+      <div class="kpi con"><div class="kpi-label">Contribution (lakhs)</div><div class="kpi-value mono" id="kpiContrib">—</div><div class="kpi-delta" id="kpiContribDelta"></div></div>
+      <div class="kpi pv"><div class="kpi-label">Blended PV Ratio</div><div class="kpi-value mono" id="kpiPv">—</div><div class="kpi-delta" id="kpiPvDelta"></div></div>
+      <div class="kpi buy"><div class="kpi-label">Active Buyers</div><div class="kpi-value mono" id="kpiBuyers">—</div><div class="kpi-delta" id="kpiBuyersDelta"></div></div>
+    </div>
+
+    <div class="health-strip">
+      <div class="health-strip-top">
+        <span class="lbl">Margin health — blended PV ratio</span>
+        <span class="val" id="healthVal">—</span>
+      </div>
+      <div class="health-track"><div class="health-marker" id="healthMarker" style="left:0%"></div></div>
+      <div class="health-legend">
+        <span><i class="swatch" style="background:var(--danger)"></i> Below 15%</span>
+        <span><i class="swatch" style="background:var(--warn)"></i> 15–25%</span>
+        <span><i class="swatch" style="background:var(--good)"></i> 25%+</span>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="breakdown">Breakdown</button>
+      <button class="tab" data-tab="trends">Trends</button>
+      <button class="tab" data-tab="risk">Risk &amp; Concentration</button>
+    </div>
+
+    <!-- Breakdown tab -->
+    <div class="tab-panel" id="tab-breakdown">
+      <div class="panel">
+        <p class="panel-title" id="breakdownTitle">Buyer-wise</p>
+        <p class="panel-sub" id="breakdownSub">—</p>
+        <div id="breakdownTable"></div>
+        <div class="chart-wrap"><canvas id="breakdownChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Trends tab -->
+    <div class="tab-panel" id="tab-trends" style="display:none;">
+      <div class="panel">
+        <p class="panel-title">Revenue &amp; Contribution over time</p>
+        <p class="panel-sub">All months present in the sheet, in order.</p>
+        <div class="chart-wrap"><canvas id="totalsTrendChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <p class="panel-title">Top movers, month by month</p>
+        <p class="panel-sub" id="trendDimSub">Top 5 by cumulative contribution — dimension follows the selector above.</p>
+        <div class="chart-wrap"><canvas id="dimTrendChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Risk tab -->
+    <div class="tab-panel" id="tab-risk" style="display:none;">
+      <div class="two-col">
+        <div class="panel">
+          <p class="panel-title">Low-margin flags</p>
+          <p class="panel-sub">Cumulative to date, PV ratio under 15%, dimension follows the selector above.</p>
+          <div id="riskLowList"></div>
+        </div>
+        <div class="panel">
+          <p class="panel-title">Concentration</p>
+          <p class="panel-sub">Share of total cumulative revenue held by the top entries.</p>
+          <div id="concList"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>MCA Control Room · reads directly from your Google Sheet · no data is stored anywhere else</footer>
+</div>
+
+<script>
+const DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzu3LKRPVvnYxc9z0Xm-q4EAj6pTMgeBR_wcvrvXL3i5yeEvd-Yd-FJSrJwp03-P0LX/exec';
+let RAW_ROWS = [];
+let MONTHS = []; // sorted { key, label }
+let state = { scope: 'month', month: null, dim: 'buyer', tab: 'breakdown' };
+let charts = {};
+
+/* ---------- month key parsing, mirrors the Apps Script mKey() ---------- */
+function monthKey(label){
+  if(!label) return '';
+  const m = String(label).replace(/\s+/g,'').match(/^([A-Za-z]{3})'?(\d{2}|\d{4})$/);
+  if(!m) return String(label).trim();
+  const names=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const mon = names.indexOf(m[1].toLowerCase())+1;
+  let yr = Number(m[2]); yr = yr<100 ? 2000+yr : yr;
+  return String(yr*100+mon).padStart(6,'0');
+}
+
+function fmtLakh(n){
+  if(n===null||n===undefined||isNaN(n)) return '—';
+  const sign = n<0 ? '-' : '';
+  n = Math.abs(n);
+  const parts = n.toFixed(2).split('.');
+  let intPart = parts[0];
+  let last3 = intPart.slice(-3);
+  let rest = intPart.slice(0,-3);
+  if(rest !== '') rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',';
+  return sign + rest + last3 + '.' + parts[1];
+}
+function fmtPct(n){ return isNaN(n) ? '—' : (n*100).toFixed(1)+'%'; }
+
+function pvClass(pv){
+  if(pv < 0.15) return 'pv-bad';
+  if(pv < 0.25) return 'pv-warn';
+  return 'pv-good';
+}
+function pvColor(pv){
+  if(pv < 0.15) return '#E5484D';
+  if(pv < 0.25) return '#F5A623';
+  return '#33D6A6';
+}
+
+/* ---------- theme ---------- */
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggle').textContent = theme==='light' ? '🌙' : '☀️';
+  try{ localStorage.setItem('mca_theme', theme); }catch(e){}
+}
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(cur === 'light' ? 'dark' : 'light');
+  if(MONTHS.length) render(); // redraw charts with new theme colors
+});
+applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
+
+/* ---------- email this report ---------- */
+document.getElementById('mailBtn').addEventListener('click', ()=>{
+  if(!MONTHS.length) return;
+  const monthLabel = (MONTHS.find(m=>m.key===state.month) || {}).label || state.month;
+  const scopeLabel = state.scope==='month' ? 'This month' : 'Cumulative to date';
+  const t = totals(scopedRows());
+  const subject = `MCA Report — ${monthLabel} (${scopeLabel})`;
+  const body = [
+    `MCA Control Room — ${monthLabel}, ${scopeLabel}`,
+    '',
+    `Revenue: ${fmtLakh(t.revenue)} lakhs`,
+    `Contribution: ${fmtLakh(t.contrib)} lakhs`,
+    `Blended PV Ratio: ${fmtPct(t.pv)}`,
+    `Active Buyers: ${t.buyers}`,
+    '',
+    `Full live report: ${window.location.href}`
+  ].join('\n');
+  window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+});
+
+/* ---------- connection ---------- */
+document.getElementById('refreshBtn').addEventListener('click', ()=>{ loadData(DEFAULT_ENDPOINT); });
+document.getElementById('retryBtn').addEventListener('click', ()=>{ loadData(DEFAULT_ENDPOINT); });
+
+window.addEventListener('DOMContentLoaded', ()=>{ loadData(DEFAULT_ENDPOINT); });
+
+async function loadData(url){
+  setStatus('loading', 'Fetching latest data…');
+  document.getElementById('refreshBtn').disabled = true;
+  try{
+    const res = await fetch(url);
+    const json = await res.json();
+    if(json.error) throw new Error(json.error);
+    RAW_ROWS = json.rows || [];
+    if(!RAW_ROWS.length) throw new Error('The sheet returned no rows — check the Data tab has data below row 2.');
+    buildMonths();
+    document.getElementById('loadError').style.display='none';
+    document.getElementById('app').style.display='block';
+    setStatus('ok', 'Live · updated ' + new Date(json.generatedAt || Date.now()).toLocaleString());
+    render();
+  }catch(err){
+    setStatus('err', 'Could not refresh: ' + err.message);
+    // Only replace the whole screen with the error state if we have never
+    // successfully loaded data yet — a failed refresh shouldn't yank away
+    // a report someone is already looking at.
+    if(!RAW_ROWS.length){
+      document.getElementById('loadErrorMsg').textContent = err.message;
+      document.getElementById('loadError').style.display='block';
+      document.getElementById('app').style.display='none';
+    }
+  }finally{
+    document.getElementById('refreshBtn').disabled = false;
+  }
+}
+
+function setStatus(kind, text){
+  const dot = document.getElementById('statusDot');
+  const t = document.getElementById('statusText');
+  dot.style.background = kind==='ok' ? '#33D6A6' : kind==='err' ? '#E5484D' : '#F5A623';
+  t.innerHTML = text;
+}
+
+function buildMonths(){
+  const set = new Map();
+  RAW_ROWS.forEach(r=>{
+    if(r.month) set.set(monthKey(r.month), r.month);
+  });
+  MONTHS = Array.from(set.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([key,label])=>({key,label}));
+  const sel = document.getElementById('monthSelect');
+  sel.innerHTML = MONTHS.map(m=>`<option value="${m.key}">${m.label}</option>`).join('');
+  state.month = MONTHS[MONTHS.length-1].key;
+  sel.value = state.month;
+}
+
+/* ---------- controls ---------- */
+document.getElementById('monthSelect').addEventListener('change', e=>{ state.month = e.target.value; render(); });
+document.getElementById('dimSelect').addEventListener('change', e=>{ state.dim = e.target.value; render(); });
+document.querySelectorAll('.scope-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.scope-toggle button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.scope = btn.dataset.scope;
+    render();
+  });
+});
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.tab = btn.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');
+    document.getElementById('tab-'+state.tab).style.display='block';
+    render();
+  });
+});
+
+/* ---------- data helpers ---------- */
+function scopedRows(){
+  if(state.scope==='month'){
+    return RAW_ROWS.filter(r=>monthKey(r.month)===state.month);
+  }
+  return RAW_ROWS.filter(r=>monthKey(r.month) && monthKey(r.month) <= state.month);
+}
+function prevScopedRows(){
+  const idx = MONTHS.findIndex(m=>m.key===state.month);
+  if(state.scope==='month'){
+    if(idx<=0) return [];
+    return RAW_ROWS.filter(r=>monthKey(r.month)===MONTHS[idx-1].key);
+  }
+  if(idx<=0) return [];
+  return RAW_ROWS.filter(r=>monthKey(r.month) && monthKey(r.month) <= MONTHS[idx-1].key);
+}
+function groupBy(rows, dim){
+  const out = new Map();
+  rows.forEach(r=>{
+    const k = (r[dim] || '—').trim() || '—';
+    if(!out.has(k)) out.set(k, {label:k, revenue:0, contrib:0});
+    const o = out.get(k);
+    o.revenue += r.revenue; o.contrib += r.contrib;
+  });
+  return Array.from(out.values());
+}
+function totals(rows){
+  const revenue = rows.reduce((s,r)=>s+r.revenue,0);
+  const contrib = rows.reduce((s,r)=>s+r.contrib,0);
+  const buyers = new Set(rows.filter(r=>r.revenue).map(r=>r.buyer)).size;
+  return { revenue, contrib, pv: revenue ? contrib/revenue : 0, buyers };
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(!MONTHS.length) return;
+  const cur = scopedRows();
+  const prev = prevScopedRows();
+  const curT = totals(cur), prevT = totals(prev);
+
+  document.getElementById('kpiRevenue').textContent = fmtLakh(curT.revenue);
+  document.getElementById('kpiContrib').textContent = fmtLakh(curT.contrib);
+  document.getElementById('kpiPv').textContent = fmtPct(curT.pv);
+  document.getElementById('kpiBuyers').textContent = curT.buyers;
+
+  setDelta('kpiRevenueDelta', curT.revenue, prevT.revenue, fmtLakh);
+  setDelta('kpiContribDelta', curT.contrib, prevT.contrib, fmtLakh);
+  setDelta('kpiPvDelta', curT.pv, prevT.pv, v=>fmtPct(v));
+  setDelta('kpiBuyersDelta', curT.buyers, prevT.buyers, v=>v);
+
+  document.getElementById('healthVal').textContent = fmtPct(curT.pv) + ' blended';
+  // scale marker across a 0-40% window for visibility
+  const pct40 = Math.min(1, Math.max(0, curT.pv)/0.40) * 100;
+  document.getElementById('healthMarker').style.left = pct40.toFixed(1)+'%';
+
+  if(state.tab==='breakdown') renderBreakdown(cur);
+  if(state.tab==='trends') renderTrends();
+  if(state.tab==='risk') renderRisk();
+}
+
+function setDelta(id, cur, prev, fmt){
+  const el = document.getElementById(id);
+  if(!prev && prev!==0){ el.textContent=''; return; }
+  const diff = cur - prev;
+  if(Math.abs(diff) < 1e-9){ el.textContent = 'flat vs prior'; el.className='kpi-delta delta-flat'; return; }
+  const arrow = diff>0 ? '▲' : '▼';
+  el.className = 'kpi-delta ' + (diff>0 ? 'delta-up':'delta-down');
+  el.textContent = arrow + ' ' + fmt(Math.abs(diff)) + ' vs prior';
+}
+
+const DIM_LABELS = {buyer:'Buyer', merch:'Merchandiser', category:'Category', region:'Region', complexity:'Complexity', idStatus:'ID Status', persona:'Persona'};
+
+function renderBreakdown(rows){
+  const dim = state.dim;
+  document.getElementById('breakdownTitle').textContent = DIM_LABELS[dim] + '-wise';
+  document.getElementById('breakdownSub').textContent = (state.scope==='month' ? 'This month' : 'Cumulative to date') + ' · sorted by contribution';
+
+  let grouped = groupBy(rows, dim).sort((a,b)=>b.contrib-a.contrib);
+  const maxRev = Math.max(1, ...grouped.map(g=>g.revenue));
+
+  if(!grouped.length){
+    document.getElementById('breakdownTable').innerHTML = '<div class="empty">No rows for this selection.</div>';
+  } else {
+    let html = '<table><thead><tr><th>'+DIM_LABELS[dim]+'</th><th>Revenue</th><th>Contribution</th><th>PV Ratio</th></tr></thead><tbody>';
+    grouped.forEach(g=>{
+      const pv = g.revenue ? g.contrib/g.revenue : 0;
+      html += `<tr><td><span class="bar-cell" style="width:${(g.revenue/maxRev*40).toFixed(0)}px"></span>${g.label}</td>
+        <td>${fmtLakh(g.revenue)}</td><td>${fmtLakh(g.contrib)}</td>
+        <td><span class="pv-pill ${pvClass(pv)}">${fmtPct(pv)}</span></td></tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('breakdownTable').innerHTML = html;
+  }
+
+  const top = grouped.slice(0,12);
+  drawChart('breakdownChart', {
+    type:'bar',
+    data:{ labels: top.map(g=>g.label),
+      datasets:[
+        {label:'Revenue', data:top.map(g=>g.revenue), backgroundColor:'#4F91FF', borderRadius:4},
+        {label:'Contribution', data:top.map(g=>g.contrib), backgroundColor:'#F5A623', borderRadius:4},
+      ]},
+    options: baseBarOptions('y')
+  });
+}
+
+function renderTrends(){
+  const monthTotals = MONTHS.map(m=>{
+    const rows = RAW_ROWS.filter(r=>monthKey(r.month)===m.key);
+    return { label:m.label, ...totals(rows) };
+  });
+  drawChart('totalsTrendChart', {
+    type:'line',
+    data:{ labels: monthTotals.map(m=>m.label),
+      datasets:[
+        {label:'Revenue', data:monthTotals.map(m=>m.revenue), borderColor:'#4F91FF', backgroundColor:'rgba(79,145,255,0.12)', fill:true, tension:.3},
+        {label:'Contribution', data:monthTotals.map(m=>m.contrib), borderColor:'#F5A623', backgroundColor:'rgba(245,166,35,0.12)', fill:true, tension:.3},
+      ]},
+    options: baseLineOptions()
+  });
+
+  document.getElementById('trendDimSub').textContent = 'Top 5 ' + DIM_LABELS[state.dim] + ' entries by cumulative contribution, tracked by month.';
+  const cumRows = RAW_ROWS.filter(r=>monthKey(r.month) && monthKey(r.month) <= state.month);
+  const top5 = groupBy(cumRows, state.dim).sort((a,b)=>b.contrib-a.contrib).slice(0,5).map(g=>g.label);
+  const palette = ['#4F91FF','#F5A623','#33D6A6','#9E8CFF','#E5484D'];
+  const datasets = top5.map((name,i)=>({
+    label:name,
+    data: MONTHS.map(m=>{
+      const rows = RAW_ROWS.filter(r=>monthKey(r.month)===m.key && ((r[state.dim]||'—').trim()||'—')===name);
+      return rows.reduce((s,r)=>s+r.contrib,0);
+    }),
+    borderColor: palette[i%palette.length],
+    backgroundColor: palette[i%palette.length],
+    tension:.3
+  }));
+  drawChart('dimTrendChart', {
+    type:'line',
+    data:{ labels: MONTHS.map(m=>m.label), datasets },
+    options: baseLineOptions()
+  });
+}
+
+function renderRisk(){
+  const cumRows = RAW_ROWS.filter(r=>monthKey(r.month) && monthKey(r.month) <= state.month);
+  const grouped = groupBy(cumRows, state.dim);
+  const lowMargin = grouped
+    .map(g=>({...g, pv: g.revenue ? g.contrib/g.revenue : 0}))
+    .filter(g=>g.revenue > 0 && g.pv < 0.15)
+    .sort((a,b)=>a.pv-b.pv)
+    .slice(0,10);
+
+  const lowEl = document.getElementById('riskLowList');
+  if(!lowMargin.length){
+    lowEl.innerHTML = '<div class="empty">No entries below 15% PV ratio for this scope. 🎉</div>';
+  } else {
+    lowEl.innerHTML = lowMargin.map(g=>`
+      <div class="risk-card">
+        <div><div class="risk-name">${g.label}</div><div class="risk-meta">Revenue ${fmtLakh(g.revenue)} · Contribution ${fmtLakh(g.contrib)}</div></div>
+        <div class="risk-pct" style="color:${pvColor(g.pv)}">${fmtPct(g.pv)}</div>
+      </div>`).join('');
+  }
+
+  const totalRev = grouped.reduce((s,g)=>s+g.revenue,0);
+  const sortedByRev = grouped.slice().sort((a,b)=>b.revenue-a.revenue).slice(0,5);
+  const concEl = document.getElementById('concList');
+  if(!totalRev || !sortedByRev.length){
+    concEl.innerHTML = '<div class="empty">No data for this scope.</div>';
+  } else {
+    concEl.innerHTML = sortedByRev.map(g=>{
+      const share = g.revenue/totalRev;
+      const flagColor = share>0.35 ? '#E5484D' : share>0.25 ? '#F5A623' : '#33D6A6';
+      return `<div class="risk-card">
+        <div><div class="risk-name">${g.label}</div><div class="risk-meta">${fmtLakh(g.revenue)} of ${fmtLakh(totalRev)} total revenue</div></div>
+        <div class="risk-pct" style="color:${flagColor}">${fmtPct(share)}</div>
+      </div>`;
+    }).join('') + `<div class="risk-meta" style="margin-top:10px;">Flagged amber above 25% of total revenue, red above 35% — a single ${DIM_LABELS[state.dim].toLowerCase()} carrying that much of the book is a concentration risk.</div>`;
+  }
+}
+
+/* ---------- chart helpers ---------- */
+function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function baseBarOptions(indexAxis){
+  const muted = cssVar('--text-muted'), faint = cssVar('--text-faint'), grid = cssVar('--grid');
+  return {
+    indexAxis: indexAxis || 'x',
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ color:muted, font:{family:'Inter', size:11} } } },
+    scales:{
+      x:{ ticks:{ color:faint, font:{family:'IBM Plex Mono', size:10} }, grid:{ color:grid } },
+      y:{ ticks:{ color:muted, font:{family:'Inter', size:11} }, grid:{ display:false } },
+    }
+  };
+}
+function baseLineOptions(){
+  const muted = cssVar('--text-muted'), faint = cssVar('--text-faint'), grid = cssVar('--grid');
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ color:muted, font:{family:'Inter', size:11} } } },
+    scales:{
+      x:{ ticks:{ color:muted, font:{family:'Inter', size:11} }, grid:{ color:grid } },
+      y:{ ticks:{ color:faint, font:{family:'IBM Plex Mono', size:10} }, grid:{ color:grid } },
+    }
+  };
+}
+function drawChart(canvasId, config){
+  try{
+    if(typeof Chart === 'undefined') throw new Error('chart library unavailable');
+    if(charts[canvasId]) charts[canvasId].destroy();
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    charts[canvasId] = new Chart(ctx, config);
+  }catch(err){
+    const canvas = document.getElementById(canvasId);
+    if(canvas && canvas.parentElement){
+      canvas.parentElement.innerHTML = '<div class="empty">Chart unavailable right now — the tables above are still accurate.</div>';
+    }
+  }
+}
+</script>
+</body>
+</html>
